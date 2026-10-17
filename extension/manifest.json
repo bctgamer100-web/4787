@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "BigSeller → SKU Tracking Analyzer",
+  "version": "0.1.0",
+  "description": "กด Ctrl สองครั้งบน BigSeller เพื่อดึง SKU ตามเลข Tracking แล้วส่งเข้า SKU Tracking Analyzer",
+  "permissions": ["storage"],
+  "host_permissions": ["https://*.bigseller.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.bigseller.com/*"],
+      "js": ["hook.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://*.bigseller.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

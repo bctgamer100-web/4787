@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบสรุป SKU จาก Excel</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true">
+  <span class="orb"></span><span class="orb"></span><span class="orb"></span>
+  <div class="night-meteors"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="sky-luminary"></div>
+  <span class="day-cloud day-cloud-large day-cloud-one"></span>
+  <span class="day-cloud day-cloud-two"></span>
+  <span class="day-cloud day-cloud-small day-cloud-three"></span>
+  <span class="day-cloud day-cloud-large day-cloud-four"></span>
+  <span class="day-cloud day-cloud-small day-cloud-five"></span>
+  <span class="day-cloud day-cloud-six"></span>
+  <div class="mountain-range"><span class="mountain-back"></span><span class="mountain-mid"></span><span class="mountain-front"></span></div>
+</div>
+<div class="grid-overlay" aria-hidden="true"></div>
+<div class="wrap">
+<header style="text-align:center;margin-bottom:20px"><div style="font-size:42px">📊</div><h1>SKU TRACKING <span style="font-weight:500">ANALYZER</span></h1><div class="sub">⚡ อ่าน Excel • ตรวจ Tracking • แยกออเดอร์ • รวมจำนวน • คัดลอกผลลัพธ์</div></header>
+
+<div class="card">
+<div class="tabs">
+<button class="tab active" id="excelTab" onclick="showTab('excel')">📊 ดึงข้อมูลจาก Excel</button>
+<button class="tab" id="manualTab" onclick="showTab('manual')">⌨️ กรอก SKU เอง</button>
+<button class="tab" id="resultTab" onclick="showTab('result')">📈 สรุปผลที่ดึง</button>
+<button class="tab" id="dailyTab" onclick="showTab('daily')">🗓️ ประวัติรายวัน</button>
+</div>
+
+<div id="excelPanel" class="panel active">
+<div class="drop" id="drop" onclick="document.getElementById('file').click()">
+<div class="big">📁</div><b>คลิกเลือกไฟล์ Excel หรือ ลากไฟล์มาวาง</b><div class="sub">รองรับ .xlsx / .xls / .csv</div>
+<input id="file" type="file" accept=".xlsx,.xls,.csv" hidden>
+<div class="file" id="fileName">ยังไม่ได้เลือกไฟล์</div>
+</div>
+<div id="options" style="display:none">
+<div class="grid">
+<div class="field"><label>📄 Sheet</label><select id="sheet"></select></div>
+<div class="field"><label>🏷️ SKU Merchant</label><select id="skuCol"></select></div>
+<div class="field"><label>🔢 จำนวน</label><select id="qtyCol"></select></div>
+<div class="field"><label>🚚 หมายเลข Tracking</label><select id="trackingCol"></select></div>
+<div class="field"><label>⚙️ แถวหัวตาราง</label><select id="headerRow"><option value="-1">🔎 ให้ระบบหาให้อัตโนมัติ</option></select></div>
+</div>
+<div class="actions">
+<button class="green" onclick="readAndSummarize()">⚡ อ่านไฟล์และสรุปผล</button>
+<button class="secondary" onclick="preview()">👁️ ดูตัวอย่าง</button>
+<button class="secondary" onclick="resetExcel()">↺ รีเซ็ต</button>
+</div>
+<div class="status" id="status">เลือก SKU Merchant + จำนวน + Tracking แล้วกดอ่านไฟล์</div>
+<div class="help">ระบบจะแยกออเดอร์จาก <b>จำนวนหมายเลข Tracking ที่ไม่ซ้ำกันของ SKU นั้น</b> — Tracking 1 หมายเลข = 📦 ออเดอร์เดียว, Tracking มากกว่า 1 หมายเลข = 🧱 ออเดอร์ก้อน โดยไม่ใช้ค่า “จำนวน” เป็นตัวตัดสิน และจะรวมจำนวนทุกแถวของ SKU เดียวกันเข้าด้วยกัน</div>
+<div class="preview" id="preview"></div>
+</div>
+</div>
+
+<div id="manualPanel" class="panel manual">
+<h2>⌨️ ตรวจ SKU แบบกรอกเอง</h2>
+<div class="grid">
+<div><div class="sub">ชุดที่ 1</div><textarea id="manual1" placeholder="SKU-001&#10;SKU-002"></textarea></div>
+<div><div class="sub">ชุดที่ 2</div><textarea id="manual2" placeholder="SKU-001&#10;SKU-003"></textarea></div>
+</div>
+<div class="actions"><button class="primary" onclick="manualCheck()">🔍 ตรวจ SKU ที่ตรงกัน</button><button class="secondary" onclick="document.getElementById('manual1').value='';document.getElementById('manual2').value=''">🗑️ ล้าง</button></div>
+<div id="manualResult"></div>
+</div>
+
+<div id="resultPanel" class="panel">
+<div class="resulttop"><div><h2>📈 สรุปผลที่ดึงจาก Excel</h2><div class="sub" id="resultFile"></div></div><button class="secondary back" onclick="showTab('excel')">← กลับไป Excel</button></div>
+<div id="result"></div>
+</div>
+<div id="dailyPanel" class="panel">
+<div class="resulttop"><div><h2>🗓️ ประวัติสรุปรายวัน</h2><div class="sub">บันทึกไว้ในเบราว์เซอร์นี้ เลือกเปิดดูผลสรุปย้อนหลังได้</div></div></div>
+<div class="archive-filters">
+<div class="field"><label for="dailyDateFilter">เลือกวันที่สรุป</label><input type="date" id="dailyDateFilter" onchange="renderDailyArchive()"></div>
+<div class="field"><label for="dailySearch">ค้นหาวันที่หรือชื่อไฟล์</label><input type="search" id="dailySearch" placeholder="เช่น 2026-09-29 หรือชื่อไฟล์" oninput="renderDailyArchive()" autocomplete="off"></div>
+<button class="secondary archive-clear" type="button" onclick="clearDailyDate()">ทุกวัน</button>
+</div>
+<div id="dailyArchive"></div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="js/app.js"></script>
+<script src="js/effects.js"></script>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="สลับโหมดสี">
+  <span class="theme-icon" id="themeIcon">☀️</span><span id="themeText">โหมดสว่าง</span>
+</button>
+
+</body>
+</html>
